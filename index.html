@@ -400,8 +400,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica
   const SALE_START = new Date(SALE_SAT + 'T08:00:00');
   const SALE_END   = new Date(SALE_SUN + 'T16:00:00');
 
-  // Neighborhood center + sanity radius for geocoding (meters)
-  const HOME = { lat: 41.6998, lng: -71.4063 };
+  // Neighborhood center (Riverview — Lippitt Ave / Mill Cove Rd area) + sanity radius for geocoding (meters)
+  const HOME = { lat: 41.7106, lng: -71.3685 };
   const MAX_GEOCODE_DIST_M = 16000; // ~10 miles
 
   const ADMIN_EMAILS = ['dan@myrvia.org'];
@@ -425,6 +425,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica
   let visitorMode = localStorage.getItem(MODE_KEY) || null; // null | 'browser' | 'seller'
   let map, markersLayer, routeLine;
   let lastDataSnapshot = '';
+  let mapFitted = false;
 
   function isAdmin() {
     return !!(currentUser && ADMIN_EMAILS.includes(currentUser.email));
@@ -493,6 +494,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica
         sales = fresh;
         renderAll();
       }
+      // On first load, frame the map around the actual sales
+      if (!mapFitted && MAP_OK && sales.length) {
+        mapFitted = true;
+        const b = L.latLngBounds(sales.map(function(s){ return [s.lat, s.lng]; }));
+        map.fitBounds(b.pad(0.25), { maxZoom: 17 });
+      }
     } catch (err) {
       if (showErrors) showToast(err.message || 'Could not reach the listings database.', 'error');
     }
@@ -525,7 +532,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica
   async function geocodeAddress(address) {
     const url = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({
       q: address, format: 'json', limit: '1', countrycodes: 'us',
-      viewbox: '-71.45,41.72,-71.36,41.68', bounded: '0'
+      viewbox: '-71.39,41.72,-71.35,41.70', bounded: '0'
     });
     const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!resp.ok) throw new Error('Address lookup is busy. Please wait a few seconds and try again.');
